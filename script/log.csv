@@ -1,0 +1,2 @@
+epoch,loss,out_caps_acc,out_caps_loss,out_recon_loss,val_loss,val_out_caps_acc,val_out_caps_loss,val_out_recon_loss
+0,0.214428792793,0.761667576419,0.214369198901,0.119189326745,0.067647062242,0.933333337307,0.0676138401031,0.0664379447699
