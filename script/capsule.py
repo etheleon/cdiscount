@@ -48,8 +48,8 @@ def CapsNet(input_shape, n_class, num_routing):
     masked = Mask()([digitcaps, y])  # The true label is used to mask the output of capsule layer.
     x_recon = layers.Dense(512, activation='relu')(masked)
     x_recon = layers.Dense(1024, activation='relu')(x_recon)
-    x_recon = layers.Dense(28*28*1, activation='sigmoid')(x_recon)
-    x_recon = layers.Reshape(target_shape=[28, 28, 1], name='out_recon')(x_recon)
+    x_recon = layers.Dense(28*28*3, activation='sigmoid')(x_recon)
+    x_recon = layers.Reshape(target_shape=[28, 28, 3], name='out_recon')(x_recon)
 
     # two-input-two-output keras Model
     return models.Model([x, y], [out_caps, x_recon])
@@ -68,7 +68,7 @@ def margin_loss(y_true, y_pred):
 
 
 # define model
-model = CapsNet(input_shape=[28, 28, 1],
+model = CapsNet(input_shape=[28, 28, 3],
                 n_class=10,
                 num_routing=3)
 model.summary()
@@ -92,6 +92,9 @@ y_train = to_categorical(y_train['label'].values.astype('float32'))
 y_test = to_categorical(y_test['label'].values.astype('float32'))
 ####################################################################################################
 
+#add channels
+x_test = np.array([np.concatenate([item,item,item], axis=2) for item in x_test])
+x_train = np.array([np.concatenate([item,item,item], axis=2) for item in x_train])
 
 def train(data, model, epoch_size_frac=1.0):
     """
