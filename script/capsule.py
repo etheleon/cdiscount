@@ -48,8 +48,8 @@ def CapsNet(input_shape, n_class, num_routing):
     masked = Mask()([digitcaps, y])  # The true label is used to mask the output of capsule layer.
     x_recon = layers.Dense(512, activation='relu')(masked)
     x_recon = layers.Dense(1024, activation='relu')(x_recon)
-    x_recon = layers.Dense(128*128*3, activation='sigmoid')(x_recon)
-    x_recon = layers.Reshape(target_shape=[128, 128, 3], name='out_recon')(x_recon)
+    x_recon = layers.Dense(28*28*1, activation='sigmoid')(x_recon)
+    x_recon = layers.Reshape(target_shape=[28, 28, 1], name='out_recon')(x_recon)
 
     # two-input-two-output keras Model
     return models.Model([x, y], [out_caps, x_recon])
@@ -68,8 +68,8 @@ def margin_loss(y_true, y_pred):
 
 
 # define model
-model = CapsNet(input_shape=[128, 128, 3],
-                n_class=5270,
+model = CapsNet(input_shape=[28, 28, 1],
+                n_class=10,
                 num_routing=3)
 model.summary()
 
@@ -79,89 +79,19 @@ except Exception as e:
     print('No fancy plot {}'.format(e))
 
 #mnist###################################################################################################
-#      data_train = pd.read_csv('/data/uesu/cdiscount/data/mnist/train.csv')
-#      X_full = data_train.iloc[:,1:]
-#      y_full = data_train.iloc[:,:1]
-#      x_train, x_test, y_train, y_test = train_test_split(X_full, y_full, test_size = 0.3)
-#      # x_train, x_test, y_train, y_test = train_test_split(test[0], test[1], test_size = 0.3)
-# #
-#      x_train = x_train.values.reshape(-1, 28, 28, 1).astype('float32') / 255.
-#      #[num, width, height, channel]
-#      x_test = x_test.values.reshape(-1, 28, 28, 1).astype('float32') / 255.
-#      #[num, width, height, channel]
-#      y_train = to_categorical(y_train.astype('float32'))
-#      y_test = to_categorical(y_test.astype('float32'))
+data_train = pd.read_csv('/data/uesu/cdiscount/data/mnist/train.csv')
+X_full = data_train.iloc[:,1:]
+y_full = data_train.iloc[:,:1]
+x_train, x_test, y_train, y_test = train_test_split(X_full, y_full, test_size = 0.3)
+
+x_train = x_train.values.reshape(-1, 28, 28, 1).astype('float32') / 255.
+#[num, width, height, channel]
+x_test = x_test.values.reshape(-1, 28, 28, 1).astype('float32') / 255.
+#[num, width, height, channel]
+y_train = to_categorical(y_train['label'].values.astype('float32'))
+y_test = to_categorical(y_test['label'].values.astype('float32'))
 ####################################################################################################
 
-# slow method
-# def myown():
-#     i = 0
-#     for example in bson.decode_file_iter(open("/data/uesu/cdiscount/cdiscount-kernel/data/train.bson", 'rb')):
-#         print(i)
-#         i = i + 1
-#         if i > 100:
-#             break
-#         else:
-#             for image in example['imgs']:
-#                 Image.fromarray(cv2.imdecode(np.frombuffer(image['picture'], dtype=np.uint8), cv2.IMREAD_COLOR)).save("/data/uesu/cdiscount/sampleImages/{}.jpg".format(i))
-#     print("done")
-# myown()
-#
-# for i in range(100):
-#     imagesss = next(slowGen)
-#     Image.fromarray(imagesss.astype(np.uint8)).save("/data/uesu/cdiscount/sampleImages/{}.jpg".format(i))
-
-def myFastGenerator(length=100000):
-    """
-        file1 = open("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.bin", 'rb')
-        file1.seek(0)
-        test = file1.read(7555)
-        aimage = cv2.imdecode(np.frombuffer(test, dtype=np.uint8), cv2.IMREAD_COLOR)
-        file1.seek(7555)
-        test = file1.read(7853)
-        bimage = cv2.imdecode(np.frombuffer(test, dtype=np.uint8), cv2.IMREAD_COLOR)
-    """
-    #labels = pd.read_csv("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.csv").head(length)
-    labels = feahter.read_dataframe("/data/uesu/cdiscount/data/meta.feather").head(length)
-    with open("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.bin", 'rb') as file_:
-        # for class_, offset, size in list(examples)[start:end]:
-        for startend in list(zip([start for start in range(1,length+1, 100)],[end for end in range(100,length+100, 100)])):
-            examples = zip(
-                labels['class'][startend[0]:startend[1]],
-                labels['offset'][startend[0]:startend[1]],
-                labels['size'][startend[0]:startend[1]]
-                )
-            tempArr = []
-            for class_, offset, size in examples:
-                file_.seek(offset)
-                tempArr.append(cv2.imdecode(np.frombuffer(file_.read(size), dtype=np.uint8), cv2.IMREAD_COLOR))
-            yield (np.concatenate([y[np.newaxis,:,:,:] for y in tempArr], axis=0), labels['class'][startend[0]:startend[1]].values)
-
-def myFastGeneratorVal(length=100000):
-    """
-        file1 = open("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.bin", 'rb')
-        file1.seek(0)
-        test = file1.read(7555)
-        aimage = cv2.imdecode(np.frombuffer(test, dtype=np.uint8), cv2.IMREAD_COLOR)
-        file1.seek(7555)
-        test = file1.read(7853)
-        bimage = cv2.imdecode(np.frombuffer(test, dtype=np.uint8), cv2.IMREAD_COLOR)
-    """
-    # labels = pd.read_csv("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.csv").tail(length)
-    labels = feahter.read_dataframe("/data/uesu/cdiscount/data/meta.feather").tail(length)
-    with open("/data/uesu/cdiscount/cdiscount-kernel/data/images_128x128.bin", 'rb') as file_:
-        # for class_, offset, size in list(examples)[start:end]:
-        for startend in list(zip([start for start in range(1,length+1, 100)],[end for end in range(100,length+100, 100)])):
-            examples = zip(
-                labels['class'][startend[0]:startend[1]],
-                labels['offset'][startend[0]:startend[1]],
-                labels['size'][startend[0]:startend[1]]
-                )
-            tempArr = []
-            for class_, offset, size in examples:
-                file_.seek(offset)
-                tempArr.append(cv2.imdecode(np.frombuffer(file_.read(size), dtype=np.uint8), cv2.IMREAD_COLOR))
-            yield (np.concatenate([y[np.newaxis,:,:,:] for y in tempArr], axis=0), labels['class'][startend[0]:startend[1]].values)
 
 def train(data, model, epoch_size_frac=1.0):
     """
@@ -173,9 +103,6 @@ def train(data, model, epoch_size_frac=1.0):
     """
     # unpacking the data
     (x_train, y_train), (x_test, y_test) = data
-    # generator for data cause too big
-    y_train = to_categorical(y_train.astype('float32'), 5270)
-    y_test = to_categorical(y_test.astype('float32'), 5270)
 
     # callbacks
     log = callbacks.CSVLogger('log.csv')
@@ -191,7 +118,7 @@ def train(data, model, epoch_size_frac=1.0):
 
     # """
     # Training without data augmentation:
-    model.fit([x_train, y_train], [y_train, x_train], batch_size=20, epochs=10, validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, checkpoint])
+    # model.fit([x_train, y_train], [y_train, x_train], batch_size=20, epochs=10, validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, checkpoint])
     # """
 
     # -----------------------------------Begin: Training with data augmentation -----------------------------------#
@@ -206,16 +133,11 @@ def train(data, model, epoch_size_frac=1.0):
     # Training with data augmentation. If shift_fraction=0., also no augmentation.
     tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
 
-    # model.fit_generator(generator=train_generator(x_train, y_train, 64, 0.1),
-    # model.fit_generator(generator=myFastGenerator(),
-    #                     # steps_per_epoch=int(epoch_size_frac*y_train.shape[0] / 64),
-    #                     steps_per_epoch=100,
-    #                     epochs=10,
-    #                     validation_data=myFastGeneratorVal(),
-    #                     validation_steps=100,
-    #   )
-                        # callbacks=[log, checkpoint, lr_decay])
-                        # callbacks=[log, checkpoint, lr_decay, tensorboard])
+    model.fit_generator(generator=train_generator(x_train, y_train, 64, 0.1),
+                        steps_per_epoch=int(epoch_size_frac*y_train.shape[0] / 64),
+                        epochs=10,
+                        validation_data=[[x_test, y_test], [y_test, x_test]],
+                        callbacks=[log, checkpoint, lr_decay, tensorboard])
     # -----------------------------------End: Training with data augmentation -----------------------------------#
 
     model.save_weights('trained_model.h5')
@@ -224,7 +146,8 @@ def train(data, model, epoch_size_frac=1.0):
     return model
 
 
-train(data, model=model, epoch_size_frac = 0.1) # do 10% of an epoch (takes too long)
+train(model=model, data=((x_train, y_train), (x_test[:60], y_test[:60])),
+              epoch_size_frac = 0.5) # do 10% of an epoch (takes too long)
 
 import matplotlib
 matplotlib.use("Agg")
